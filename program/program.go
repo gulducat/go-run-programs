@@ -41,8 +41,6 @@ func (p Program) Start(ctx context.Context, errCh chan<- error) {
 }
 
 func (p Program) RetryCheck(errCh chan<- error) {
-	var err error
-
 	// retry for up to ~20 seconds (default)
 	sleep := time.Second
 	tries := p.CheckSeconds
@@ -50,6 +48,7 @@ func (p Program) RetryCheck(errCh chan<- error) {
 		tries = 20
 	}
 
+	var lastErr error
 	for i := 0; i < tries; i++ {
 		// sleep first since we start Wait()ing immediately after Start()ing,
 		// and it takes >0 time for the programs to become ready.
@@ -57,17 +56,16 @@ func (p Program) RetryCheck(errCh chan<- error) {
 
 		// don't let the check command run for more than a couple seconds
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
-		err = p.Check.Run(ctx)
+		lastErr = p.Check.Run(ctx)
 		cancel() // "the cancel function returned by context.WithTimeout should be called... (lostcancel)"
 		// no error, the check was successful, so stop retrying, we're done!
-		if err == nil {
+		if lastErr == nil {
 			errCh <- nil
 			return
 		}
 	}
-
-	// err will be the last Check failure
-	errCh <- err
+	// lastErr will be the last Check failure
+	errCh <- lastErr
 }
 
 // Command is a system command to run.
