@@ -1,6 +1,8 @@
 package hcl
 
 import (
+	"context"
+
 	p "github.com/gulducat/go-run-programs/program"
 	"github.com/hashicorp/hcl/v2/hclsimple"
 )
@@ -20,5 +22,5 @@ func RunFromHCL(path string) (func(), error) {
 	if err != nil {
 		return func() {}, err
 	}
-	return p.RunInBackground(c.Programs...)
+	return p.RunInBackground(context.Background(), c.Programs...)
 }

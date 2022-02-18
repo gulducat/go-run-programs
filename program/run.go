@@ -9,8 +9,8 @@ import "context"
 
 // RunInBackground runs a list of Programs in background goroutines.
 // the returned func() can be used to stop the programs when desired.
-func RunInBackground(programs ...Program) (func(), error) {
-	ctx, stop := context.WithCancel(context.Background())
+func RunInBackground(ctx context.Context, programs ...Program) (func(), error) {
+	ctx, stop := context.WithCancel(ctx)
 	// an error channel lets us know if a program's main Command fails,
 	// or if a Check never succeeds after retries.
 	errCh := make(chan error)
@@ -18,7 +18,7 @@ func RunInBackground(programs ...Program) (func(), error) {
 	// start the programs and their checks.
 	for _, p := range programs {
 		go p.Start(ctx, errCh)
-		go p.RetryCheck(errCh)
+		go p.RetryCheck(ctx, errCh)
 	}
 
 	// wait for them to be up and ready.

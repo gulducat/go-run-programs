@@ -21,7 +21,7 @@ func TestThatMyThingTalksToTheOtherThing(t *testing.T) {
         Command: "other-thing server run",
         Check:   "other-thing is-running",
     }
-    stop, err := program.RunInBackground(p)
+    stop, err := program.RunInBackground(context.Background(), p)
     t.Cleanup(stop) // stop it when tests are done.
     if err != nil {
         t.Fatal(err)
