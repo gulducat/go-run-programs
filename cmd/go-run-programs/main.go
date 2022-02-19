@@ -1,10 +1,15 @@
-package cmd
+package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gulducat/go-run-programs/hcl"
 )
+
+func main() {
+	os.Exit(CLI(os.Args))
+}
 
 func CLI(args []string) int {
 	if len(args) < 2 {
