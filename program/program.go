@@ -40,7 +40,7 @@ func (p Program) Start(ctx context.Context, errCh chan<- error) {
 	errCh <- fmt.Errorf("command %s stopped: %w", p.Command, err)
 }
 
-func (p Program) RetryCheck(ctx context.Context, errCh chan<- error) {
+func (p Program) RetryCheck(ctx context.Context, doneCh chan<- struct{}, errCh chan<- error) {
 	// retry for up to ~20 seconds (default)
 	sleep := time.Second
 	tries := p.CheckSeconds
@@ -60,7 +60,7 @@ func (p Program) RetryCheck(ctx context.Context, errCh chan<- error) {
 		cancel() // "the cancel function returned by context.WithTimeout should be called... (lostcancel)"
 		// no error, the check was successful, so stop retrying, we're done!
 		if lastErr == nil {
-			errCh <- nil
+			doneCh <- struct{}{}
 			return
 		}
 	}
