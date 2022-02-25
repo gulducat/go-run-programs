@@ -13,6 +13,7 @@ import (
 // Program's Command should run indefinitely, as with a server.
 // Its Check is run several times to determine when the program is ready,
 // for approximately CheckSeconds number of seconds before failing (default 20).
+// A map of EnvVars may be provided which will be set before Command starts.
 type Program struct {
 	Name         string  `hcl:"name,label"`
 	Command      Command `hcl:"command"`
@@ -50,7 +51,7 @@ func (p Program) RetryCheck(ctx context.Context, doneCh chan<- struct{}, errCh c
 
 	var lastErr error
 	for i := 0; i < tries; i++ {
-		// sleep first since we start Wait()ing immediately after Start()ing,
+		// sleep first since we start RetryCheck()ing immediately after Start()ing,
 		// and it takes >0 time for the programs to become ready.
 		time.Sleep(sleep)
 

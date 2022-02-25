@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
-	"github.com/gulducat/go-run-programs/hcl"
+	"github.com/gulducat/go-run-programs/program"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func CLI(args []string) int {
 		return 1
 	}
 
-	stop, err := hcl.RunFromHCL(args[1])
+	stop, err := program.RunFromHCL(context.Background(), args[1])
 	defer stop()
 	if err != nil {
 		return 1

@@ -4,14 +4,18 @@ import (
 	"context"
 )
 
-// type StartCheckable interface { // todo: hmm...
-// 	Start(context.Context, chan<- error)
-// 	RetryCheck(chan<- error)
-// }
+func RunFromHCL(ctx context.Context, path string) (func(), error) {
+	c, err := ParseHCL(path)
+	if err != nil {
+		return func() {}, err
+	}
+	return RunInBackground(context.Background(), c.Programs...)
+}
 
 // RunInBackground runs a list of Programs in background goroutines.
 // the returned func() can be used to stop the programs when desired.
 func RunInBackground(ctx context.Context, programs ...Program) (func(), error) {
+	// TODO: custom cancel func, try to SIGTERM first before KILL
 	ctx, stop := context.WithCancel(ctx)
 
 	// channels for errors and check done-ness
