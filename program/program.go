@@ -55,8 +55,8 @@ func (p Program) RetryCheck(ctx context.Context, doneCh chan<- struct{}, errCh c
 		// and it takes >0 time for the programs to become ready.
 		time.Sleep(sleep)
 
-		// don't let the check command run for more than a couple seconds
-		ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+		// don't let the check command run for more than a few seconds
+		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		lastErr = p.Check.Run(ctx)
 		cancel() // "the cancel function returned by context.WithTimeout should be called... (lostcancel)"
 		// no error, the check was successful, so stop retrying, we're done!
@@ -80,6 +80,10 @@ func (c Command) Run(ctx context.Context) error {
 	args := parts[1:]
 
 	bts, err := exec.CommandContext(ctx, name, args...).CombinedOutput()
+	if ctx.Err() != nil {
+		// error with the context itself, canceled or timed out or such
+		return fmt.Errorf("command %s error: %w; output:\n%s", c, ctx.Err(), bts)
+	}
 	if err != nil {
 		// exec's CombinedOutput() err is often quite vague if the command exits with error.
 		// the actual output of the program, both stdout and stderr, goes to bts []byte,

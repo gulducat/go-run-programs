@@ -21,6 +21,7 @@ func CLI(args []string) int {
 	stop, err := program.RunFromHCL(context.Background(), args[1])
 	defer stop()
 	if err != nil {
+		log.Println("error:", err)
 		return 1
 	}
 
