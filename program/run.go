@@ -9,7 +9,7 @@ func RunFromHCL(ctx context.Context, path string) (func(), error) {
 	if err != nil {
 		return func() {}, err
 	}
-	return RunInBackground(context.Background(), c.Programs...)
+	return RunInBackground(ctx, c.Programs...)
 }
 
 // RunInBackground runs a list of Programs in background goroutines.
@@ -18,35 +18,58 @@ func RunInBackground(ctx context.Context, programs ...Program) (func(), error) {
 	// TODO: custom cancel func, try to SIGTERM first before KILL
 	ctx, stop := context.WithCancel(ctx)
 
-	// channels for errors and check done-ness
-	errCh := make(chan error)
-	doneCh := make(chan struct{})
+	// channels for start/check errors and program completion
+	runErrCh := make(chan error, len(programs))
+	checkErrCh := make(chan error, len(programs))
+	doneCh := make(chan struct{}, len(programs))
 
 	// start the programs and their checks.
 	for _, p := range programs {
-		go p.Start(ctx, errCh)
-		go p.RetryCheck(ctx, doneCh, errCh)
+		go p.Start(ctx, doneCh, runErrCh)
+		go p.RetryCheck(ctx, checkErrCh)
 	}
 
-	// wait for them to be done or any error
-	doneCount := 0
-	for {
-		select {
-		// any error is bad news, stop everything
-		case err := <-errCh:
-			stop()
-			return stop, err
+	// this is our stop func, it will block until all programs are killed
+	stopped := 0
+	stopAndWait := func() {
+		// already done
+		if stopped == len(programs) {
+			return
+		}
 
-		// we expect 1 done per program
-		case <-doneCh:
-			doneCount++
-			if doneCount == len(programs) {
-				return stop, nil
-			}
+		// ensure context is canceled for all programs
+		stop()
 
-		// any other way the context gets done
-		case <-ctx.Done():
-			return stop, ctx.Err()
+		// wait for all of them to complete
+		for range programs {
+			<-doneCh
+			stopped++
 		}
 	}
+
+	// we're done starting when either anything errors,
+	// or when we get one passed check per program.
+	var err error
+	passedChecks := 0
+startLoop:
+	for {
+		select {
+		case err = <-runErrCh:
+			if err != nil {
+				stopAndWait()
+				break startLoop
+			}
+		case err = <-checkErrCh:
+			if err != nil {
+				stopAndWait()
+				break startLoop
+			}
+			passedChecks++
+			if passedChecks == len(programs) {
+				break startLoop
+			}
+		}
+	}
+
+	return stopAndWait, err
 }
