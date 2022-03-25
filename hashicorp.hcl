@@ -4,9 +4,9 @@ program "consul" {
 }
   
 program "nomad" {
-	command = "nomad agent -dev"
-	check   = "nomad node status"
-	# seconds = 1 # to test check failures
+  command = "nomad agent -dev"
+  check   = "nomad node status"
+  # seconds = 3 # to test check failures
 }
   
 program "vault" {
