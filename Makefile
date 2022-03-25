@@ -1,13 +1,24 @@
-go-run-programs:
-	go build ./cmd/go-run-programs
+# ignore go cache for tests
+export GOFLAGS = -count=1
 
+default: clean lint test
+
+go-run-programs:
+	go build .
+
+# go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.0
 lint:
-	docker run -it --rm -v $(PWD):/app -w /app golangci/golangci-lint:v1.44.2 golangci-lint run -v --enable-all ./...
+	golangci-lint run
+.PHONY: lint
 
 test:
-	go test -v .
+	 go test -v ./...
+.PHONY: test
+
+test-%:
+	go test -v ./... -run $*
+.PHONY: test-%
 
 clean:
-	rm -f go-run-programs
-
-.PHONY: lint test clean
+	rm -rf go-run-programs ./tests/test-server{,.exe}
+.PHONY: clean
